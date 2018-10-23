@@ -22,6 +22,8 @@ from util import uniq
 import re
 import sys
 from copy import deepcopy
+from joblib import Parallel, delayed
+import numpy as np
 
 # batch evaluation of a list of sentences
 def batch_precision(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False):
@@ -205,6 +207,138 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
         r = 1.0
     try:
         f1 = (1.0+beta*beta) * p * r / (beta*beta*p+r)
+    except ZeroDivisionError:
+        f1 = 0.0
+    if verbose:
+        print "CORRECT EDITS  :", int(stat_correct)
+        print "PROPOSED EDITS :", int(stat_proposed)
+        print "GOLD EDITS     :", int(stat_gold)
+        print "P =", p
+        print "R =", r
+        print "F_%.1f =" % beta, f1
+    return (p, r, f1)
+
+
+def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose):
+    stat_correct = 0.0
+    stat_proposed = 0.0
+    stat_gold = 0.0
+    # Candidate system edit extraction
+    candidate_tok = candidate.split()
+    source_tok = source.split()
+    #lmatrix, backpointers = levenshtein_matrix(source_tok, candidate_tok)
+    lmatrix1, backpointers1 = levenshtein_matrix(
+        source_tok, candidate_tok, 1, 1, 1)
+    lmatrix2, backpointers2 = levenshtein_matrix(
+        source_tok, candidate_tok, 1, 1, 2)
+
+    #V, E, dist, edits = edit_graph(lmatrix, backpointers)
+    V1, E1, dist1, edits1 = edit_graph(lmatrix1, backpointers1)
+    V2, E2, dist2, edits2 = edit_graph(lmatrix2, backpointers2)
+
+    V, E, dist, edits = merge_graph(
+        V1, V2, E1, E2, dist1, dist2, edits1, edits2)
+    if very_verbose:
+        print "edit matrix 1:", lmatrix1
+        print "edit matrix 2:", lmatrix2
+        print "backpointers 1:", backpointers1
+        print "backpointers 2:", backpointers2
+        print "edits (w/o transitive arcs):", edits
+    V, E, dist, edits = transitive_arcs(
+        V, E, dist, edits, max_unchanged_words, very_verbose)
+
+    # Find measures maximizing current cumulative F1; local: curent annotator
+    # only
+    sqbeta = beta * beta
+    chosen_ann = -1
+    f1_max = -1.0
+
+    argmax_correct = 0.0
+    argmax_proposed = 0.0
+    argmax_gold = 0.0
+    max_stat_correct = -1.0
+    min_stat_proposed = float("inf")
+    min_stat_gold = float("inf")
+    for annotator, gold in golds_set.iteritems():
+        localdist = set_weights(E, dist, edits, gold, verbose, very_verbose)
+        editSeq = best_edit_seq_bf(V, E, localdist, edits, very_verbose)
+        if verbose:
+            print ">> Annotator:", annotator
+        if very_verbose:
+            print "Graph(V,E) = "
+            print "V =", V
+            print "E =", E
+            print "edits (with transitive arcs):", edits
+            print "dist() =", localdist
+            print "viterbi path =", editSeq
+        if ignore_whitespace_casing:
+            editSeq = filter(
+                lambda x: not equals_ignore_whitespace_casing(x[2], x[3]), editSeq)
+        correct = matchSeq(editSeq, gold, ignore_whitespace_casing, verbose)
+
+        # local cumulative counts, P, R and F1
+        stat_correct_local = stat_correct + len(correct)
+        stat_proposed_local = stat_proposed + len(editSeq)
+        stat_gold_local = stat_gold + len(gold)
+        p_local = comp_p(stat_correct_local, stat_proposed_local)
+        r_local = comp_r(stat_correct_local, stat_gold_local)
+        f1_local = comp_f1(stat_correct_local,
+                           stat_proposed_local, stat_gold_local, beta)
+
+        if f1_max < f1_local or \
+            (f1_max == f1_local and max_stat_correct < stat_correct_local) or \
+                (f1_max == f1_local and max_stat_correct == stat_correct_local and min_stat_proposed + sqbeta * min_stat_gold > stat_proposed_local + sqbeta * stat_gold_local):
+            chosen_ann = annotator
+            f1_max = f1_local
+            max_stat_correct = stat_correct_local
+            min_stat_proposed = stat_proposed_local
+            min_stat_gold = stat_gold_local
+            argmax_correct = len(correct)
+            argmax_proposed = len(editSeq)
+            argmax_gold = len(gold)
+
+        if verbose:
+            print "SOURCE        :", source.encode("utf8")
+            print "HYPOTHESIS    :", candidate.encode("utf8")
+            print "EDIT SEQ      :", [shrinkEdit(ed) for ed in list(reversed(editSeq))]
+            print "GOLD EDITS    :", gold
+            print "CORRECT EDITS :", correct
+            print "# correct     :", int(stat_correct_local)
+            print "# proposed    :", int(stat_proposed_local)
+            print "# gold        :", int(stat_gold_local)
+            print "precision     :", p_local
+            print "recall        :", r_local
+            print "f_%.1f         :" % beta, f1_local
+            print "-------------------------------------------"
+    # if verbose:
+    #     print ">> Chosen Annotator for line", i, ":", chosen_ann
+    #     print ""
+    stat_correct += argmax_correct
+    stat_proposed += argmax_proposed
+    stat_gold += argmax_gold
+    return stat_correct, stat_proposed, stat_gold
+
+
+def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, n_parallel=None, joblib_verbose=0):
+    assert len(candidates) == len(sources) == len(gold_edits)
+
+    stats = Parallel(n_jobs=n_parallel, verbose=joblib_verbose)(delayed(batch_multi_pre_rec_f1_sub)(candidate, source, golds_set, max_unchanged_words, beta,
+                                                                            ignore_whitespace_casing, verbose, very_verbose) for candidate, source, golds_set in izip(candidates, sources, gold_edits))
+    correct_proposed_golds = np.array(stats)
+    stat_correct, stat_proposed, stat_gold = np.sum(
+        correct_proposed_golds, axis=0)
+
+    try:
+        p = stat_correct / stat_proposed
+    except ZeroDivisionError:
+        p = 1.0
+
+    try:
+        r = stat_correct / stat_gold
+    except ZeroDivisionError:
+        r = 1.0
+    try:
+        f1 = (1.0 + beta * beta) * p * r / (beta * beta * p + r)
     except ZeroDivisionError:
         f1 = 0.0
     if verbose:
@@ -429,10 +563,11 @@ def pre_rec_f1(candidate, source, gold_edits, max_unchanged_words=2, beta=0.5, i
 
 # distance function
 def get_distance(dist, v1, v2):
-    try:
-        return dist[(v1, v2)]
-    except KeyError:
+    distance = dist.get((v1, v2))
+    if distance is None:
         return float('inf')
+    else:
+        return distance
 
 
 # find maximally matching edit squence through the graph using bellman-ford
@@ -647,28 +782,24 @@ def set_weights(E, dist, edits, gold_edits, verbose=False, very_verbose=False):
 
 # add transitive arcs
 def transitive_arcs(V, E, dist, edits, max_unchanged_words=2, very_verbose=False):
+    E_append = E.append
     if very_verbose:
         print "-- Add transitive arcs --"
-    for k in range(len(V)):
-        vk = V[k]
+    for vk in V:
         if very_verbose:
             print "v _k :", vk
 
-        for i in range(len(V)):
-            vi = V[i]
+        for vi in V:
             if very_verbose:
                 print "v _i :", vi
-            try:
-                eik = edits[(vi, vk)]
-            except KeyError:
+            eik = edits.get((vi, vk))
+            if eik is None:
                 continue
-            for j in range(len(V)):
-                vj = V[j]
+            for vj in V:
                 if very_verbose:
                     print "v _j :", vj
-                try:
-                    ekj = edits[(vk, vj)]
-                except KeyError:
+                ekj = edits.get((vk, vj))
+                if ekj is None:
                     continue
                 dik = get_distance(dist, vi, vk)
                 dkj = get_distance(dist, vk, vj)
@@ -677,7 +808,7 @@ def transitive_arcs(V, E, dist, edits, max_unchanged_words=2, very_verbose=False
                     if eij[-1] <= max_unchanged_words:
                         if very_verbose:
                             print " add new arcs v_i -> v_j:", eij
-                        E.append((vi, vj))
+                        E_append((vi, vj))
                         dist[(vi, vj)] = dik + dkj
                         edits[(vi, vj)] = eij
     # remove noop transitive arcs
@@ -862,4 +993,3 @@ def levenshtein_matrix(first, second, cost_ins=1, cost_del=1, cost_sub=2):
                 except KeyError:
                     backpointers[(i, j)] = [((i,j-1), edit)]
     return (distance_matrix, backpointers)
-

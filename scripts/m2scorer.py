@@ -15,8 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # file: m2scorer.py
-# 
-# score a system's output against a gold reference 
+#
+# score a system's output against a gold reference
 #
 # Usage: m2scorer.py [OPTIONS] proposed_sentences source_gold
 # where
@@ -101,7 +101,9 @@ beta = 0.5
 ignore_whitespace_casing= False
 verbose = False
 very_verbose = False
-opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose", "ignore_whitespace_casing", "very_verbose"])
+n_parallel = None
+joblib_verbose = 0
+opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose", "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose="])
 for o, v in opts:
     if o in ('-v', '--verbose'):
         verbose = True
@@ -113,6 +115,10 @@ for o, v in opts:
         beta = float(v)
     elif o == '--ignore_whitespace_casing':
         ignore_whitespace_casing = True
+    elif o == '--parallel':
+        n_parallel = int(v)
+    elif o == '--joblib_verbose':
+        joblib_verbose = int(v)
     else:
         print >> sys.stderr, "Unknown option :", o
         print_usage()
@@ -134,9 +140,11 @@ fin = smart_open(system_file, 'r')
 system_sentences = [line.decode("utf8").strip() for line in fin.readlines()]
 fin.close()
 
-p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose)
+if n_parallel is None:
+    p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose)
+else:
+    p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel)
 
 print "Precision   : %.4f" % p
 print "Recall      : %.4f" % r
 print "F_%.1f       : %.4f" % (beta, f1)
-
