@@ -23,9 +23,7 @@ import re
 import sys
 from copy import deepcopy
 from joblib import Parallel, delayed
-from multiprocessing import Value, Array
-import numpy as np
-import random
+from multiprocessing import Value
 
 stat_correct = Value('f', 0.0)
 stat_proposed = Value('f', 0.0)
