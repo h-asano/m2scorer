@@ -4,9 +4,9 @@
 **OR CHECK OUT THE RELEASES: https://github.com/nusnlp/m2scorer/releases**  
 ****************************************************************************************************
 
-## M^2Scorer 
+## M^2Scorer
 
-This is the scorer for evaluation of grammatical error correction systems. 
+This is the scorer for evaluation of grammatical error correction systems.
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License (See [LICENSE](license.md)).
 
@@ -22,7 +22,7 @@ Linguistics: Human Language Technologies (NAACL 2012).
 
 ### Contents  
 1. Quickstart
-2. Pre-requisites 
+2. Pre-requisites
 3. Using the scorer   
   3.1 System output format     
   3.2 Scorer's gold standard format   
@@ -37,7 +37,7 @@ Linguistics: Human Language Technologies (NAACL 2012).
 ### Quickstart
 
 ```
-./m2scorer [-v] SYSTEM SOURCE_GOLD 
+./m2scorer [-v] SYSTEM SOURCE_GOLD
 ```
 SYSTEM = the system output in sentence-per-line plain text.
 SOURCE_GOLD = the source sentences with gold edits.
@@ -47,7 +47,7 @@ SOURCE_GOLD = the source sentences with gold edits.
 The following dependencies have to be installed to use the M^2 scorer.
 
 * Python (>= 2.6.4, < 3.0, older versions might work but are not tested)
-* nltk (http://www.nltk.org, needed for sentence splitting) 
+* nltk (http://www.nltk.org, needed for sentence splitting)
 
 
 ### Using the scorer
@@ -64,6 +64,8 @@ OPTIONS
   --max_unchanged_words N     -  Maximum unchanged words when extracting edits. Default = 2.
   --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and casing. Default no.
   --beta                      -  Set the ratio of recall importance against precision. Default = 0.5.
+  --parallel N                -  The maximum number of concurrently running jobs. Default = 1"
+  --sentnece_level            -  Print sentence-level scores, not a corpus-level score."
 
 ```
 #### 2.1 System output format
@@ -90,7 +92,7 @@ The Dog .
 
 #### Scorer's gold standard format
 SOURCE_GOLD = source sentences (i.e. input to the error correction
-system) and the gold annotation in TOKEN offsets (starting from zero). 
+system) and the gold annotation in TOKEN offsets (starting from zero).
 
 **Format:**
 ```
@@ -144,7 +146,7 @@ Giant otters are apex predator .
 ```
 Run the M^2Scorer as follows:
 ```
-./m2scorer example/system example/source_gold 
+./m2scorer example/system example/source_gold
 ```
 The evaluation output will be will be:
 ```
@@ -181,4 +183,3 @@ in two aspects:
 To convert source files and gold edits from the CoNLL-2014 format into
 the M^2 format, run the preprocessing script bundled with the CoNLL-2014
 training data.
-

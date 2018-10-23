@@ -93,6 +93,9 @@ def print_usage():
     print >> sys.stderr, "        --max_unchanged_words N     -  Maximum unchanged words when extraction edit. Default 2."
     print >> sys.stderr, "        --beta B                    -  Beta value for F-measure. Default 0.5."
     print >> sys.stderr, "        --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and caseing. Default no."
+    print >> sys.stderr, "        --parallel N                -  The maximum number of concurrently running jobs."
+    print >> sys.stderr, "        --sentnece_level            -  Print sentence-level scores, not a corpus-level score."
+
 
 
 
