@@ -5,7 +5,7 @@
 **THIS IS AN UNOFFICIAL IMPROVED VERSION FOR M2Scorer**     
 ****************************************************************************************************
 
-Compared to the original M2 scorer, this script can (1) evaluate GEC system faster, (2) process sentences in parallel, and (3) show each sentence-level score.
+Compared to (the original M2 scorer)[https://github.com/nusnlp/m2scorer], this script can (1) evaluate GEC system faster, (2) process sentences in parallel, and (3) show each sentence-level score.
 
 ### Contents  
 1. Quickstart
