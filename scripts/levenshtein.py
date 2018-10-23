@@ -24,6 +24,7 @@ import sys
 from copy import deepcopy
 from joblib import Parallel, delayed
 import numpy as np
+import random
 
 # batch evaluation of a list of sentences
 def batch_precision(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False):
@@ -107,7 +108,7 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
     stat_proposed = 0.0
     stat_gold = 0.0
     i = 0
-    for candidate, source, golds_set in zip(candidates, sources, gold_edits):
+    for candidate, source, golds_set in izip(candidates, sources, gold_edits):
         i = i + 1
         # Candidate system edit extraction
         candidate_tok = candidate.split()
@@ -196,7 +197,6 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
         stat_proposed += argmax_proposed
         stat_gold += argmax_gold
         if sentence_level:
-            yield f1_max
             print f1_max
             stat_correct = 0.0
             stat_proposed = 0.0
@@ -222,11 +222,11 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
         print "P =", p
         print "R =", r
         print "F_%.1f =" % beta, f1
-    if not sentence_level:
-        # return (p, r, f1)
-        yield p
-        yield r
-        yield f1
+    # if not sentence_level:
+    return (p, r, f1)
+    #     yield p
+    #     yield r
+    #     yield f1
 
 
 def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False):
