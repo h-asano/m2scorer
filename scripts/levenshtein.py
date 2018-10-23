@@ -23,8 +23,13 @@ import re
 import sys
 from copy import deepcopy
 from joblib import Parallel, delayed
+from multiprocessing import Value, Array
 import numpy as np
 import random
+
+stat_correct = Value('f', 0.0)
+stat_proposed = Value('f', 0.0)
+stat_gold = Value('f', 0.0)
 
 # batch evaluation of a list of sentences
 def batch_precision(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False):
@@ -108,7 +113,7 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
     stat_proposed = 0.0
     stat_gold = 0.0
     i = 0
-    for candidate, source, golds_set in izip(candidates, sources, gold_edits):
+    for candidate, source, golds_set in zip(candidates, sources, gold_edits):
         i = i + 1
         # Candidate system edit extraction
         candidate_tok = candidate.split()
@@ -230,9 +235,9 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
 
 
 def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False):
-    stat_correct = 0.0
-    stat_proposed = 0.0
-    stat_gold = 0.0
+    # stat_correct = 0.0
+    # stat_proposed = 0.0
+    # stat_gold = 0.0
     # Candidate system edit extraction
     candidate_tok = candidate.split()
     source_tok = source.split()
@@ -287,9 +292,9 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
         correct = matchSeq(editSeq, gold, ignore_whitespace_casing, verbose)
 
         # local cumulative counts, P, R and F1
-        stat_correct_local = stat_correct + len(correct)
-        stat_proposed_local = stat_proposed + len(editSeq)
-        stat_gold_local = stat_gold + len(gold)
+        stat_correct_local = stat_correct.value + len(correct)
+        stat_proposed_local = stat_proposed.value + len(editSeq)
+        stat_gold_local = stat_gold.value + len(gold)
         p_local = comp_p(stat_correct_local, stat_proposed_local)
         r_local = comp_r(stat_correct_local, stat_gold_local)
         f1_local = comp_f1(stat_correct_local,
@@ -323,11 +328,14 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
     if verbose:
         print ">> Chosen Annotator for line", i, ":", chosen_ann
         print ""
-    stat_correct += argmax_correct
-    stat_proposed += argmax_proposed
-    stat_gold += argmax_gold
+    stat_correct.value += argmax_correct
+    stat_proposed.value += argmax_proposed
+    stat_gold.value += argmax_gold
     if sentence_level:
         print i, f1_max
+        stat_correct.value = 0.0
+        stat_proposed.value = 0.0
+        stat_gold.value = 0.0
     return stat_correct, stat_proposed, stat_gold
 
 
@@ -335,18 +343,18 @@ def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged
     assert len(candidates) == len(sources) == len(gold_edits)
 
     stats = Parallel(n_jobs=n_parallel, verbose=joblib_verbose)(delayed(batch_multi_pre_rec_f1_sub)(x[0], x[1], x[2], max_unchanged_words, beta,
-                                                                            ignore_whitespace_casing, verbose, very_verbose, i, sentence_level) for i, x in enumerate(izip(candidates, sources, gold_edits)))
-    correct_proposed_golds = np.array(stats)
-    stat_correct, stat_proposed, stat_gold = np.sum(
-        correct_proposed_golds, axis=0)
+                                                                            ignore_whitespace_casing, verbose, very_verbose, i, sentence_level) for i, x in enumerate(zip(candidates, sources, gold_edits), start=1))
+    # correct_proposed_golds = np.array(stats)
+    # stat_correct, stat_proposed, stat_gold = np.sum(
+    #     correct_proposed_golds, axis=0)
 
     try:
-        p = stat_correct / stat_proposed
+        p = stat_correct.value / stat_proposed.value
     except ZeroDivisionError:
         p = 1.0
 
     try:
-        r = stat_correct / stat_gold
+        r = stat_correct.value / stat_gold.value
     except ZeroDivisionError:
         r = 1.0
     try:
@@ -354,9 +362,9 @@ def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged
     except ZeroDivisionError:
         f1 = 0.0
     if verbose:
-        print "CORRECT EDITS  :", int(stat_correct)
-        print "PROPOSED EDITS :", int(stat_proposed)
-        print "GOLD EDITS     :", int(stat_gold)
+        print "CORRECT EDITS  :", int(stat_correct.value)
+        print "PROPOSED EDITS :", int(stat_proposed.value)
+        print "GOLD EDITS     :", int(stat_gold.value)
         print "P =", p
         print "R =", r
         print "F_%.1f =" % beta, f1

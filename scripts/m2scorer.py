@@ -145,13 +145,11 @@ fin.close()
 
 if n_parallel is None:
     p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level)
-    if not sentence_level:
-        print "Precision   : %.4f" % p
-        print "Recall      : %.4f" % r
-        print "F_%.1f       : %.4f" % (beta, f1)
 
 else:
     p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level)
+
+if not sentence_level:
     print "Precision   : %.4f" % p
     print "Recall      : %.4f" % r
     print "F_%.1f       : %.4f" % (beta, f1)
