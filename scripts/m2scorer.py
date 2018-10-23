@@ -103,7 +103,8 @@ verbose = False
 very_verbose = False
 n_parallel = None
 joblib_verbose = 0
-opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose", "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose="])
+sentence_level = False
+opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose", "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose=", "sentence_level"])
 for o, v in opts:
     if o in ('-v', '--verbose'):
         verbose = True
@@ -119,6 +120,8 @@ for o, v in opts:
         n_parallel = int(v)
     elif o == '--joblib_verbose':
         joblib_verbose = int(v)
+    elif o == '--sentence_level':
+        sentence_level = True
     else:
         print >> sys.stderr, "Unknown option :", o
         print_usage()
@@ -141,10 +144,14 @@ system_sentences = [line.decode("utf8").strip() for line in fin.readlines()]
 fin.close()
 
 if n_parallel is None:
-    p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose)
-else:
-    p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel)
+    p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level)
+    if not sentence_level:
+        print "Precision   : %.4f" % p
+        print "Recall      : %.4f" % r
+        print "F_%.1f       : %.4f" % (beta, f1)
 
-print "Precision   : %.4f" % p
-print "Recall      : %.4f" % r
-print "F_%.1f       : %.4f" % (beta, f1)
+else:
+    p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level)
+    print "Precision   : %.4f" % p
+    print "Recall      : %.4f" % r
+    print "F_%.1f       : %.4f" % (beta, f1)

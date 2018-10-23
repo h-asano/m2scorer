@@ -101,7 +101,7 @@ def f1_suffstats(candidate, source, gold_edits, max_unchanged_words=2, ignore_wh
         print "-------------------------------------------"
     return (stat_correct, stat_proposed, stat_gold)
 
-def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing= False, verbose=False, very_verbose=False):
+def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing= False, verbose=False, very_verbose=False, sentence_level=False):
     assert len(candidates) == len(sources) == len(gold_edits)
     stat_correct = 0.0
     stat_proposed = 0.0
@@ -195,6 +195,12 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
         stat_correct += argmax_correct
         stat_proposed += argmax_proposed
         stat_gold += argmax_gold
+        if sentence_level:
+            yield f1_max
+            print f1_max
+            stat_correct = 0.0
+            stat_proposed = 0.0
+            stat_gold = 0.0
 
     try:
         p  = stat_correct / stat_proposed
@@ -216,10 +222,14 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
         print "P =", p
         print "R =", r
         print "F_%.1f =" % beta, f1
-    return (p, r, f1)
+    if not sentence_level:
+        # return (p, r, f1)
+        yield p
+        yield r
+        yield f1
 
 
-def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose):
+def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False):
     stat_correct = 0.0
     stat_proposed = 0.0
     stat_gold = 0.0
@@ -310,20 +320,22 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
             print "recall        :", r_local
             print "f_%.1f         :" % beta, f1_local
             print "-------------------------------------------"
-    # if verbose:
-    #     print ">> Chosen Annotator for line", i, ":", chosen_ann
-    #     print ""
+    if verbose:
+        print ">> Chosen Annotator for line", i, ":", chosen_ann
+        print ""
     stat_correct += argmax_correct
     stat_proposed += argmax_proposed
     stat_gold += argmax_gold
+    if sentence_level:
+        print i, f1_max
     return stat_correct, stat_proposed, stat_gold
 
 
-def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, n_parallel=None, joblib_verbose=0):
+def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, n_parallel=None, joblib_verbose=0, sentence_level=False):
     assert len(candidates) == len(sources) == len(gold_edits)
 
-    stats = Parallel(n_jobs=n_parallel, verbose=joblib_verbose)(delayed(batch_multi_pre_rec_f1_sub)(candidate, source, golds_set, max_unchanged_words, beta,
-                                                                            ignore_whitespace_casing, verbose, very_verbose) for candidate, source, golds_set in izip(candidates, sources, gold_edits))
+    stats = Parallel(n_jobs=n_parallel, verbose=joblib_verbose)(delayed(batch_multi_pre_rec_f1_sub)(x[0], x[1], x[2], max_unchanged_words, beta,
+                                                                            ignore_whitespace_casing, verbose, very_verbose, i, sentence_level) for i, x in enumerate(izip(candidates, sources, gold_edits)))
     correct_proposed_golds = np.array(stats)
     stat_correct, stat_proposed, stat_gold = np.sum(
         correct_proposed_golds, axis=0)
