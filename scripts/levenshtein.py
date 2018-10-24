@@ -23,11 +23,12 @@ import re
 import sys
 from copy import deepcopy
 from joblib import Parallel, delayed
-from multiprocessing import Value
+import multiprocessing
 
-stat_correct = Value('f', 0.0)
-stat_proposed = Value('f', 0.0)
-stat_gold = Value('f', 0.0)
+m = m=multiprocessing.Manager()
+stat_correct = m.Value('f', 0.0)
+stat_proposed = m.Value('f', 0.0)
+stat_gold = m.Value('f', 0.0)
 
 # batch evaluation of a list of sentences
 def batch_precision(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False):

@@ -31,11 +31,10 @@
 #
 
 import sys
-import levenshtein
 from getopt import getopt
-from util import paragraphs
-from util import smart_open
 
+import levenshtein
+from util import paragraphs, smart_open
 
 
 def load_annotation(gold_file):
@@ -62,20 +61,24 @@ def load_annotation(gold_file):
             if etype == 'noop':
                 start_offset = -1
                 end_offset = -1
-            corrections =  [c.strip() if c != '-NONE-' else '' for c in fields[2].split('||')]
+            corrections = [
+                c.strip() if c != '-NONE-' else '' for c in fields[2].split('||')]
             # NOTE: start and end are *token* offsets
-            original = ' '.join(' '.join(sentence).split()[start_offset:end_offset])
+            original = ' '.join(' '.join(sentence).split()
+                                [start_offset:end_offset])
             annotator = int(fields[5])
             if annotator not in annotations.keys():
                 annotations[annotator] = []
-            annotations[annotator].append((start_offset, end_offset, original, corrections))
+            annotations[annotator].append(
+                (start_offset, end_offset, original, corrections))
         tok_offset = 0
         for this_sentence in sentence:
             tok_offset += len(this_sentence.split())
             source_sentences.append(this_sentence)
             this_edits = {}
             for annotator, annotation in annotations.iteritems():
-                this_edits[annotator] = [edit for edit in annotation if edit[0] <= tok_offset and edit[1] <= tok_offset and edit[0] >= 0 and edit[1] >= 0]
+                this_edits[annotator] = [edit for edit in annotation if edit[
+                    0] <= tok_offset and edit[1] <= tok_offset and edit[0] >= 0 and edit[1] >= 0]
             if len(this_edits) == 0:
                 this_edits[0] = []
             gold_edits.append(this_edits)
@@ -94,20 +97,20 @@ def print_usage():
     print >> sys.stderr, "        --beta B                    -  Beta value for F-measure. Default 0.5."
     print >> sys.stderr, "        --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and caseing. Default no."
     print >> sys.stderr, "        --parallel N                -  The maximum number of concurrently running jobs."
+    print >> sys.stderr, "        --joblib_verbose            -  joblib.Parallel() 's verbosity level. Default = 0."
     print >> sys.stderr, "        --sentnece_level            -  Print sentence-level scores, not a corpus-level score."
 
 
-
-
-max_unchanged_words=2
+max_unchanged_words = 2
 beta = 0.5
-ignore_whitespace_casing= False
+ignore_whitespace_casing = False
 verbose = False
 very_verbose = False
 n_parallel = None
 joblib_verbose = 0
 sentence_level = False
-opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose", "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose=", "sentence_level"])
+opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose",
+                                        "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose=", "sentence_level"])
 for o, v in opts:
     if o in ('-v', '--verbose'):
         verbose = True
@@ -147,10 +150,12 @@ system_sentences = [line.decode("utf8").strip() for line in fin.readlines()]
 fin.close()
 
 if n_parallel is None:
-    p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level)
+    p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits,
+                                                  max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level)
 
 else:
-    p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level)
+    p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words,
+                                                         beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level)
 
 if not sentence_level:
     print "Precision   : %.4f" % p
