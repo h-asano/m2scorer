@@ -102,6 +102,7 @@ def print_usage():
     print >> sys.stderr, "        --parallel N                -  The maximum number of concurrently running jobs."
     print >> sys.stderr, "        --joblib_verbose            -  joblib.Parallel() 's verbosity level. Default = 0."
     print >> sys.stderr, "        --sentnece_level            -  Print sentence-level scores, not a corpus-level score."
+    print >> sys.stderr, "        --use_skip                  -  Skip time-consuming lines."
 
 max_unchanged_words = 2
 beta = 0.5
@@ -111,8 +112,9 @@ very_verbose = False
 n_parallel = None
 joblib_verbose = 0
 sentence_level = False
+use_skip = False
 opts, args = getopt(sys.argv[1:], "v", ["max_unchanged_words=", "beta=", "verbose",
-                                        "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose=", "sentence_level"])
+                                        "ignore_whitespace_casing", "very_verbose", "parallel=", "joblib_verbose=", "sentence_level", "use_skip"])
 for o, v in opts:
     if o in ('-v', '--verbose'):
         verbose = True
@@ -130,6 +132,8 @@ for o, v in opts:
         joblib_verbose = int(v)
     elif o == '--sentence_level':
         sentence_level = True
+    elif o == '--use_skip':
+        use_skip = True
     else:
         print >> sys.stderr, "Unknown option :", o
         print_usage()
@@ -153,7 +157,7 @@ fin.close()
 
 if n_parallel is None:
     p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits,
-                                                  max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level)
+                                                  max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level, use_skip)
 
 else:
     # with multiprocessing.Manager() as m:
@@ -162,7 +166,7 @@ else:
     #     stat_proposed = m.Value('f', 0.0)
     # stat_gold = m.Value('f', 0.0)
     p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words,
-                                                         beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level)
+                                                         beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level, use_skip)
 
 if not sentence_level:
     print "Precision   : %.4f" % p

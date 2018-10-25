@@ -45,4 +45,5 @@ OPTIONS
   --parallel N                -  The maximum number of concurrently running jobs. Default = 1
   --joblib_verbose N          -  joblib.Parallel() 's verbosity level. Default = 0.
   --sentnece_level            -  Print sentence-level scores, not a corpus-level score.
+  --use_skip                  -  Skip time-consuming lines.
 ```

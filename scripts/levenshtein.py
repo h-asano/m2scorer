@@ -22,6 +22,7 @@ import sys
 from copy import deepcopy
 from itertools import izip
 from optparse import OptionParser
+from time import time
 
 import numpy as np
 from joblib import Parallel, delayed
@@ -121,7 +122,7 @@ def f1_suffstats(candidate, source, gold_edits, max_unchanged_words=2, ignore_wh
     return (stat_correct, stat_proposed, stat_gold)
 
 
-def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, sentence_level=False):
+def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, sentence_level=False, use_skip=False):
     assert len(candidates) == len(sources) == len(gold_edits)
     stat_correct = 0.0
     stat_proposed = 0.0
@@ -150,6 +151,12 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
             print "backpointers 1:", backpointers1
             print "backpointers 2:", backpointers2
             print "edits (w/o transitive arcs):", edits
+        if use_skip and len(V) > 1000:
+            if verbose:
+                print ">> Skipping line", i, ", len(V) is" len(V)
+            if sentence_level:
+                print float(0)
+            continue
         V, E, dist, edits = transitive_arcs(
             V, E, dist, edits, max_unchanged_words, very_verbose)
 
@@ -257,7 +264,7 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
     #     yield f1
 
 
-def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False):
+def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False, use_skip=False):
     stat_correct = 0.0
     stat_proposed = 0.0
     stat_gold = 0.0
@@ -276,6 +283,12 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
 
     V, E, dist, edits = merge_graph(
         V1, V2, E1, E2, dist1, dist2, edits1, edits2)
+    if use_skip and len(V) > 1000:
+        if verbose:
+            print ">> Skipping line", i, ", len(V) is" len(V)
+        if sentence_level:
+            print float(0)
+        return stat_correct, stat_proposed, stat_gold
     if very_verbose:
         print "edit matrix 1:", lmatrix1
         print "edit matrix 2:", lmatrix2
@@ -365,11 +378,11 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
     return stat_correct, stat_proposed, stat_gold
 
 
-def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, n_parallel=None, joblib_verbose=0, sentence_level=False):
+def batch_multi_pre_rec_f1_joblib(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, n_parallel=None, joblib_verbose=0, sentence_level=False, use_skip=False):
     assert len(candidates) == len(sources) == len(gold_edits)
 
-    stats = Parallel(n_jobs=n_parallel, verbose=joblib_verbose)(delayed(batch_multi_pre_rec_f1_sub)(x[0], x[1], x[2], max_unchanged_words, beta,
-                                                                                                    ignore_whitespace_casing, verbose, very_verbose, i, sentence_level) for i, x in enumerate(zip(candidates, sources, gold_edits), start=1))
+    stats = Parallel(n_jobs=n_parallel, verbose=joblib_verbose, prefer="threads")(delayed(batch_multi_pre_rec_f1_sub)(x[0], x[1], x[2], max_unchanged_words, beta,
+                                                                                                                      ignore_whitespace_casing, verbose, very_verbose, i, sentence_level) for i, x in enumerate(zip(candidates, sources, gold_edits), start=1))
     correct_proposed_golds = np.array(stats)
     stat_correct, stat_proposed, stat_gold = np.sum(
         correct_proposed_golds, axis=0)
@@ -862,19 +875,24 @@ def transitive_arcs(V, E, dist, edits, max_unchanged_words=2, very_verbose=False
     E_append = E.append
     if very_verbose:
         print "-- Add transitive arcs --"
+    loop1 = 0
+    loop2 = 0
+    loop3 = 0
     for vk in V:
         if very_verbose:
             print "v _k :", vk
-
+        loop1 += 1
         for vi in V:
             if very_verbose:
                 print "v _i :", vi
+            loop2 += 1
             eik = edits.get((vi, vk))
             if eik is None:
                 continue
             for vj in V:
                 if very_verbose:
                     print "v _j :", vj
+                loop3 += 1
                 ekj = edits.get((vk, vj))
                 if ekj is None:
                     continue
