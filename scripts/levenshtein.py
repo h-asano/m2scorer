@@ -153,7 +153,7 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
             print "edits (w/o transitive arcs):", edits
         if use_skip and len(V) > 1000:
             if verbose:
-                print ">> Skipping line", i, ", len(V) is" len(V)
+                print ">> Skipping line", i, ", len(V) is", len(V)
             if sentence_level:
                 print float(0)
             continue
@@ -285,7 +285,7 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
         V1, V2, E1, E2, dist1, dist2, edits1, edits2)
     if use_skip and len(V) > 1000:
         if verbose:
-            print ">> Skipping line", i, ", len(V) is" len(V)
+            print ">> Skipping line", i, ", len(V) is", len(V)
         if sentence_level:
             print float(0)
         return stat_correct, stat_proposed, stat_gold
