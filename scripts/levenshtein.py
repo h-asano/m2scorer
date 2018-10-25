@@ -875,24 +875,19 @@ def transitive_arcs(V, E, dist, edits, max_unchanged_words=2, very_verbose=False
     E_append = E.append
     if very_verbose:
         print "-- Add transitive arcs --"
-    loop1 = 0
-    loop2 = 0
-    loop3 = 0
     for vk in V:
         if very_verbose:
             print "v _k :", vk
-        loop1 += 1
+
         for vi in V:
             if very_verbose:
                 print "v _i :", vi
-            loop2 += 1
             eik = edits.get((vi, vk))
             if eik is None:
                 continue
             for vj in V:
                 if very_verbose:
                     print "v _j :", vj
-                loop3 += 1
                 ekj = edits.get((vk, vj))
                 if ekj is None:
                     continue
