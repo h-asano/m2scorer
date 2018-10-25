@@ -26,7 +26,7 @@ The following dependencies have to be installed to use the M^2 scorer.
 * Python (>= 2.6.4, < 3.0, older versions might work but are not tested)
 * nltk (http://www.nltk.org, needed for sentence splitting)
 * **joblib (https://pypi.org/project/joblib/, needed for parallel computing)**
-
+* **numpy (http://www.numpy.org/)**
 
 ### Using the scorer
 ```
@@ -43,6 +43,6 @@ OPTIONS
   --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and casing. Default no.
   --beta                      -  Set the ratio of recall importance against precision. Default = 0.5.
   --parallel N                -  The maximum number of concurrently running jobs. Default = 1
-  --joblib_verbose N          -  joblib.Parallel() 's verbosity level. Default = 0. 
+  --joblib_verbose N          -  joblib.Parallel() 's verbosity level. Default = 0.
   --sentnece_level            -  Print sentence-level scores, not a corpus-level score.
 ```

@@ -30,10 +30,13 @@
 #   --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and caseing. Default no."
 #
 
+# import multiprocessing
 import sys
 from getopt import getopt
 
+# from levenshtein import *
 import levenshtein
+from joblib import Parallel, delayed
 from util import paragraphs, smart_open
 
 
@@ -100,7 +103,6 @@ def print_usage():
     print >> sys.stderr, "        --joblib_verbose            -  joblib.Parallel() 's verbosity level. Default = 0."
     print >> sys.stderr, "        --sentnece_level            -  Print sentence-level scores, not a corpus-level score."
 
-
 max_unchanged_words = 2
 beta = 0.5
 ignore_whitespace_casing = False
@@ -154,6 +156,11 @@ if n_parallel is None:
                                                   max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level)
 
 else:
+    # with multiprocessing.Manager() as m:
+    #     # m = multiprocessing
+    #     stat_correct = m.Value('f', 0.0)
+    #     stat_proposed = m.Value('f', 0.0)
+    # stat_gold = m.Value('f', 0.0)
     p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words,
                                                          beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level)
 
