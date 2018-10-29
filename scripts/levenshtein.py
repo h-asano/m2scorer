@@ -122,7 +122,7 @@ def f1_suffstats(candidate, source, gold_edits, max_unchanged_words=2, ignore_wh
     return (stat_correct, stat_proposed, stat_gold)
 
 
-def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, sentence_level=False, use_skip=False):
+def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=2, beta=0.5, ignore_whitespace_casing=False, verbose=False, very_verbose=False, sentence_level=False, use_skip=False, maxlen_v=1000):
     assert len(candidates) == len(sources) == len(gold_edits)
     stat_correct = 0.0
     stat_proposed = 0.0
@@ -138,10 +138,15 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
             source_tok, candidate_tok, 1, 1, 1)
         lmatrix2, backpointers2 = levenshtein_matrix(
             source_tok, candidate_tok, 1, 1, 2)
-
         #V, E, dist, edits = edit_graph(lmatrix, backpointers)
         V1, E1, dist1, edits1 = edit_graph(lmatrix1, backpointers1)
         V2, E2, dist2, edits2 = edit_graph(lmatrix2, backpointers2)
+        if use_skip and (len(V1) > maxlen_v and len(V2) > maxlen_v):
+            if verbose:
+                print ">> Skipping line", i, ", len(V1):", len(V1), "len(V2):", len(V2)
+            if sentence_level:
+                print float(0)
+            continue
 
         V, E, dist, edits = merge_graph(
             V1, V2, E1, E2, dist1, dist2, edits1, edits2)
@@ -151,12 +156,7 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
             print "backpointers 1:", backpointers1
             print "backpointers 2:", backpointers2
             print "edits (w/o transitive arcs):", edits
-        if use_skip and len(V) > 1000:
-            if verbose:
-                print ">> Skipping line", i, ", len(V) is", len(V)
-            if sentence_level:
-                print float(0)
-            continue
+
         V, E, dist, edits = transitive_arcs(
             V, E, dist, edits, max_unchanged_words, very_verbose)
 
@@ -264,7 +264,7 @@ def batch_multi_pre_rec_f1(candidates, sources, gold_edits, max_unchanged_words=
     #     yield f1
 
 
-def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False, use_skip=False):
+def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, i, sentence_level=False, use_skip=False, maxlen_v=5000):
     stat_correct = 0.0
     stat_proposed = 0.0
     stat_gold = 0.0
@@ -280,15 +280,16 @@ def batch_multi_pre_rec_f1_sub(candidate, source, golds_set, max_unchanged_words
     #V, E, dist, edits = edit_graph(lmatrix, backpointers)
     V1, E1, dist1, edits1 = edit_graph(lmatrix1, backpointers1)
     V2, E2, dist2, edits2 = edit_graph(lmatrix2, backpointers2)
+    if use_skip and len(V1) > maxlen_v and len(V2) > maxlen_v:
+        if verbose:
+            print ">> Skipping line", i, ", len(V1):", len(V1), "len(V2):", len(V2)
+        if sentence_level:
+            print i, float(0)
+        return stat_correct, stat_proposed, stat_gold
 
     V, E, dist, edits = merge_graph(
         V1, V2, E1, E2, dist1, dist2, edits1, edits2)
-    if use_skip and len(V) > 1000:
-        if verbose:
-            print ">> Skipping line", i, ", len(V) is", len(V)
-        if sentence_level:
-            print float(0)
-        return stat_correct, stat_proposed, stat_gold
+
     if very_verbose:
         print "edit matrix 1:", lmatrix1
         print "edit matrix 2:", lmatrix2
