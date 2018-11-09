@@ -89,20 +89,20 @@ def load_annotation(gold_file):
 
 
 def print_usage():
-    print >> sys.stderr, "Usage: m2scorer.py [OPTIONS] proposed_sentences gold_source"
-    print >> sys.stderr, "where"
-    print >> sys.stderr, "  proposed_sentences   -   system output, sentence per line"
-    print >> sys.stderr, "  source_gold          -   source sentences with gold token edits"
-    print >> sys.stderr, "OPTIONS"
-    print >> sys.stderr, "  -v    --verbose                   -  print verbose output"
-    print >> sys.stderr, "        --very_verbose              -  print lots of verbose output"
-    print >> sys.stderr, "        --max_unchanged_words N     -  Maximum unchanged words when extraction edit. Default 2."
-    print >> sys.stderr, "        --beta B                    -  Beta value for F-measure. Default 0.5."
-    print >> sys.stderr, "        --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and caseing. Default no."
-    print >> sys.stderr, "        --parallel N                -  The maximum number of concurrently running jobs."
-    print >> sys.stderr, "        --joblib_verbose            -  joblib.Parallel() 's verbosity level. Default = 0."
-    print >> sys.stderr, "        --sentnece_level            -  Print sentence-level scores, not a corpus-level score."
-    print >> sys.stderr, "        --use_skip                  -  Skip time-consuming lines."
+    print("Usage: m2scorer.py [OPTIONS] proposed_sentences gold_source")
+    print("where")
+    print("  proposed_sentences   -   system output, sentence per line")
+    print("  source_gold          -   source sentences with gold token edits")
+    print("OPTIONS")
+    print("  -v    --verbose                   -  print verbose output")
+    print("        --very_verbose              -  print lots of verbose output")
+    print("        --max_unchanged_words N     -  Maximum unchanged words when extraction edit. Default 2.")
+    print("        --beta B                    -  Beta value for F-measure. Default 0.5.")
+    print("        --ignore_whitespace_casing  -  Ignore edits that only affect whitespace and caseing. Default no.")
+    print("        --parallel N                -  The maximum number of concurrently running jobs.")
+    print("        --joblib_verbose            -  joblib.Parallel() 's verbosity level. Default = 0.")
+    print("        --sentnece_level            -  Print sentence-level scores, not a corpus-level score.")
+    print("        --use_skip                  -  Skip time-consuming lines.")
 
 max_unchanged_words = 2
 beta = 0.5
@@ -169,6 +169,6 @@ else:
                                                          beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level, use_skip)
 
 if not sentence_level:
-    print "Precision   : %.4f" % p
-    print "Recall      : %.4f" % r
-    print "F_%.1f       : %.4f" % (beta, f1)
+    print("Precision   : %.4f" % p)
+    print("Recall      : %.4f" % r)
+    print("F_%.1f       : %.4f" % (beta, f1))
