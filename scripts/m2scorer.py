@@ -135,7 +135,7 @@ for o, v in opts:
     elif o == '--use_skip':
         use_skip = True
     else:
-        print >> sys.stderr, "Unknown option :", o
+        print("Unknown option :", o
         print_usage()
         sys.exit(-1)
 
@@ -144,19 +144,19 @@ if len(args) != 2:
     print_usage()
     sys.exit(-1)
 
-system_file = args[0]
-gold_file = args[1]
+system_file=args[0]
+gold_file=args[1]
 
 # load source sentences and gold edits
-source_sentences, gold_edits = load_annotation(gold_file)
+source_sentences, gold_edits=load_annotation(gold_file)
 
 # load system hypotheses
-fin = smart_open(system_file, 'r')
-system_sentences = [line.decode("utf8").strip() for line in fin.readlines()]
+fin=smart_open(system_file, 'r')
+system_sentences=[line.decode("utf8").strip() for line in fin.readlines()]
 fin.close()
 
 if n_parallel is None:
-    p, r, f1 = levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits,
+    p, r, f1=levenshtein.batch_multi_pre_rec_f1(system_sentences, source_sentences, gold_edits,
                                                   max_unchanged_words, beta, ignore_whitespace_casing, verbose, very_verbose, sentence_level, use_skip)
 
 else:
@@ -165,7 +165,7 @@ else:
     #     stat_correct = m.Value('f', 0.0)
     #     stat_proposed = m.Value('f', 0.0)
     # stat_gold = m.Value('f', 0.0)
-    p, r, f1 = levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words,
+    p, r, f1=levenshtein.batch_multi_pre_rec_f1_joblib(system_sentences, source_sentences, gold_edits, max_unchanged_words,
                                                          beta, ignore_whitespace_casing, verbose, very_verbose, n_parallel, joblib_verbose, sentence_level, use_skip)
 
 if not sentence_level:
